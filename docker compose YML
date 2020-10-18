@@ -1,0 +1,58 @@
+Apply haproxy load balancer using Docker compose
+
+	Apply a haproxy load balancer front of three load balancer
+	Use docker.compose YML file to deploy the container 
+
+Create docker compose file:
+# vi docker-compose.yml
+   container_name: webserver2
+   build: ./web
+   volumes:
+      - /root/web/lbdb/web2:/var/www/html
+   depends_on:
+      - web1
+  web3:
+   container_name: webserver3
+   build: ./web
+   volumes:
+       - /root/web/lbdb/web3:/var/www/html
+   depends_on:
+       - web1
+       - web2
+  haproxy:
+    container_name: lb
+    image: haproxy
+    volumes:
+       - /root/web/lbdb/lb:/usr/local/etc/haproxy
+    ports:
+      - "80:80"
+    depends_on:
+      - web1
+      - web2
+      - web3
+
+#docker-compose up
+
+Browse localhost:80 to see whether load balancer reply or not 
+
+haproxy.cfg file:
+defaults
+    log global
+    mode http
+    option httplog
+    option dontlognull
+    retries 3
+    timeout connect 5000
+    timeout client 50000
+    timeout server 50000
+
+frontend haproxynode
+    bind *:80
+    mode http
+    default_backend backendnodes
+
+backend backendnodes
+    balance roundrobin
+    server web1 172.18.0.2:80 check
+    server web2 172.18.0.3:80 check
+    server web3 172.18.0.4:80 check
